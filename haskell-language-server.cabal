@@ -1888,6 +1888,38 @@ test-suite hls-notes-plugin-tests
     , hls-test-utils == 2.11.0.0
   default-extensions: OverloadedStrings
 
+-----------------------------
+-- notebook plugin
+-----------------------------
+
+flag notebook
+  description: Enable notebook plugin
+  default:     True
+  manual:      True
+
+common notebook
+  if flag(notebook)
+    build-depends: haskell-language-server:hls-notebook-plugin
+    cpp-options: -Dhls_notebook
+
+library hls-notebook-plugin
+  import: defaults, pedantic, warnings
+  if !flag(notebook)
+    buildable: False
+  exposed-modules:
+    Ide.Plugin.Notebook
+
+  hs-source-dirs:     plugins/hls-notebook-plugin/src
+
+  build-depends:
+    , ghcide                == 2.11.0.0
+    , hls-plugin-api        == 2.11.0.0
+    , lsp
+
+  default-extensions:
+    , DataKinds
+    , OverloadedStrings
+
 ----------------------------
 ----------------------------
 -- HLS
@@ -1929,6 +1961,7 @@ library
                   , overloadedRecordDot
                   , semanticTokens
                   , notes
+                  , notebook
 
   exposed-modules:
     Ide.Arguments

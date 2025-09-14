@@ -1918,6 +1918,7 @@ library hls-notebook-plugin
 
   default-extensions:
     , DataKinds
+    , DuplicateRecordFields
     , OverloadedStrings
 
 ----------------------------

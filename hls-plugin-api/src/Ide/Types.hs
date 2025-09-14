@@ -428,6 +428,16 @@ pluginSupportsFileType msgParams pluginDesc =
       mfp = uriToFilePath uri
       uri = msgParams ^. L.textDocument . L.uri
 
+-- | Variant of `pluginSupportsFileType` for notebook documents.
+pluginSupportsNotebookFileType :: (L.HasNotebookDocument m doc, L.HasUri doc Uri) => m -> PluginDescriptor c -> HandleRequestResult
+pluginSupportsNotebookFileType msgParams pluginDesc =
+  case mfp of
+    Just fp | T.pack (takeExtension fp) `elem` pluginFileType pluginDesc -> HandlesRequest
+    _ -> DoesNotHandleRequest $ DoesNotSupportFileType (maybe "(unable to determine file type)" (T.pack . takeExtension) mfp)
+    where
+      mfp = uriToFilePath uri
+      uri = msgParams ^. L.notebookDocument . L.uri
+
 -- | Methods that can be handled by plugins.
 -- 'ExtraParams' captures any extra data the IDE passes to the handlers for this method
 -- Only methods for which we know how to combine responses can be instances of 'PluginMethod'
@@ -632,6 +642,22 @@ instance PluginMethod Notification Method_WorkspaceDidChangeConfiguration where
 instance PluginMethod Notification Method_Initialized where
   -- This method has no URI parameter, thus no call to 'pluginResponsible'.
   handlesRequest _ _ desc conf = pluginEnabledGlobally desc conf
+
+instance PluginMethod Notification Method_NotebookDocumentDidOpen where
+  handlesRequest _ params desc conf =
+    pluginEnabledGlobally desc conf <> pluginSupportsNotebookFileType params desc
+
+instance PluginMethod Notification Method_NotebookDocumentDidChange where
+  handlesRequest _ params desc conf =
+    pluginEnabledGlobally desc conf <> pluginSupportsNotebookFileType params desc
+
+instance PluginMethod Notification Method_NotebookDocumentDidSave where
+  handlesRequest _ params desc conf =
+    pluginEnabledGlobally desc conf <> pluginSupportsNotebookFileType params desc
+
+instance PluginMethod Notification Method_NotebookDocumentDidClose where
+  handlesRequest _ params desc conf =
+    pluginEnabledGlobally desc conf <> pluginSupportsNotebookFileType params desc
 
 
 -- ---------------------------------------------------------------------
@@ -908,6 +934,15 @@ instance PluginNotificationMethod Method_WorkspaceDidChangeWorkspaceFolders wher
 instance PluginNotificationMethod Method_WorkspaceDidChangeConfiguration where
 
 instance PluginNotificationMethod Method_Initialized where
+
+instance PluginNotificationMethod Method_NotebookDocumentDidOpen where
+
+instance PluginNotificationMethod Method_NotebookDocumentDidChange where
+
+instance PluginNotificationMethod Method_NotebookDocumentDidSave where
+
+instance PluginNotificationMethod Method_NotebookDocumentDidClose where
+
 
 -- ---------------------------------------------------------------------
 
@@ -1231,6 +1266,16 @@ instance HasTracing WorkspaceSymbolParams where
   traceWithSpan sp (WorkspaceSymbolParams _ _ query) = setTag sp "query" (encodeUtf8 query)
 instance HasTracing CallHierarchyIncomingCallsParams
 instance HasTracing CallHierarchyOutgoingCallsParams
+
+instance HasTracing DidOpenNotebookDocumentParams where
+  traceWithSpan sp a = otSetUri sp (a ^. L.notebookDocument . L.uri)
+instance HasTracing DidChangeNotebookDocumentParams where
+  traceWithSpan sp a = otSetUri sp (a ^. L.notebookDocument . L.uri)
+instance HasTracing DidCloseNotebookDocumentParams where
+  traceWithSpan sp a = otSetUri sp (a ^. L.notebookDocument . L.uri)
+instance HasTracing DidSaveNotebookDocumentParams where
+  traceWithSpan sp a = otSetUri sp (a ^. L.notebookDocument . L.uri)
+
 
 -- Instances for resolve types
 instance HasTracing CodeAction
